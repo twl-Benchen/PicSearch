@@ -487,9 +487,9 @@
     });
 
     function checkSavedImage() {
-      const savedData = localStorage.getItem('uploadedImageData');
-      if (savedData) {
-        try {
+      try {
+        const savedData = localStorage.getItem('uploadedImageData');
+        if (savedData) {
           const data = JSON.parse(savedData);
           const now = Date.now();
           
@@ -501,9 +501,10 @@
             // 已過期，清除資料
             localStorage.removeItem('uploadedImageData');
           }
-        } catch (e) {
-          localStorage.removeItem('uploadedImageData');
         }
+      } catch (e) {
+        // localStorage 不可用時，直接跳過
+        console.log('localStorage not available');
       }
     }
 
@@ -562,7 +563,11 @@
       progressFill.style.width = '0%';
       
       // 清除保存的資料
-      localStorage.removeItem('uploadedImageData');
+      try {
+        localStorage.removeItem('uploadedImageData');
+      } catch (e) {
+        console.log('localStorage not available');
+      }
       clearInterval(countdownInterval);
     }
 
@@ -613,7 +618,11 @@
             fileName: fileInput.files[0].name,
             uploadTime: Date.now()
           };
-          localStorage.setItem('uploadedImageData', JSON.stringify(imageData));
+          try {
+            localStorage.setItem('uploadedImageData', JSON.stringify(imageData));
+          } catch (e) {
+            console.log('localStorage not available');
+          }
           
           // 更新預覽圖片為上傳後的連結
           previewImg.src = imgUrl;
@@ -653,7 +662,11 @@
         if (remaining <= 0) {
           // 時間到了，清除資料
           clearInterval(countdownInterval);
-          localStorage.removeItem('uploadedImageData');
+          try {
+            localStorage.removeItem('uploadedImageData');
+          } catch (e) {
+            console.log('localStorage not available');
+          }
           showError('❌ 圖片連結已過期，請重新上傳。');
           resultButtons.classList.remove('show');
           return;
