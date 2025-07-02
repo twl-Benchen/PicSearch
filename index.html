@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>多引擎以圖搜圖工具</title>
+  <title>班陳-以圖搜圖</title>
   <style>
     * {
       margin: 0;
@@ -118,20 +118,43 @@
       display: none;
     }
 
-    .file-name {
+    /* 修改：檔案名稱和預覽圖片的容器 */
+    .file-info {
       margin-top: 1.5rem;
       padding: 1rem;
       background: linear-gradient(135deg, #e6fffa, #b2f5ea);
       border-radius: 12px;
-      font-weight: 500;
-      color: #2d3748;
       border-left: 4px solid #38b2ac;
       display: none;
+      align-items: center;
+      gap: 1rem;
+      text-align: left;
     }
 
-    .file-name.show {
-      display: block;
+    .file-info.show {
+      display: flex;
       animation: slideIn 0.3s ease;
+    }
+
+    .file-preview {
+      width: 50px;
+      height: 50px;
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .file-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .file-name {
+      font-weight: 500;
+      color: #2d3748;
+      flex: 1;
     }
 
     @keyframes slideIn {
@@ -195,6 +218,12 @@
       }
     }
 
+    /* Google 按鈕組樣式 */
+    .google-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+
     .search-btn {
       padding: 1rem 2rem;
       border-radius: 12px;
@@ -211,6 +240,7 @@
       transition: all 0.3s ease;
       position: relative;
       overflow: hidden;
+      flex: 1;
     }
 
     .search-btn::before {
@@ -233,12 +263,19 @@
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
     }
 
+    /* Google 搜尋按鈕 - 使用 Google 原本的藍色 */
     #googleBtn {
-      background: linear-gradient(135deg, #4285F4, #34A853);
+      background: linear-gradient(135deg, #4285F4, #1a73e8);
     }
 
+    /* Google Lens 按鈕 - 使用 Google Lens 的顏色 */
+    #lensBtn {
+      background: linear-gradient(135deg, #34A853, #137333);
+    }
+
+    /* SauceNAO 按鈕 - 改為黑灰色系 */
     #saucenaoBtn {
-      background: linear-gradient(135deg, #d6363e, #ff6b6b);
+      background: linear-gradient(135deg, #4a5568, #2d3748);
     }
 
     #status, #error {
@@ -296,43 +333,6 @@
       box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     }
 
-    /* 新增：圖片預覽樣式 */
-    .image-preview {
-      margin: 1rem 0;
-      display: none;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-
-    .image-preview.show {
-      display: block;
-      animation: slideIn 0.3s ease;
-    }
-
-    .image-preview img {
-      max-width: 100%;
-      max-height: 200px;
-      object-fit: contain;
-    }
-
-    /* 新增：過期提醒樣式 */
-    .expiry-notice {
-      margin-top: 1rem;
-      padding: 0.8rem;
-      background: linear-gradient(135deg, #fff8e1, #ffecb3);
-      border-radius: 8px;
-      font-size: 0.85rem;
-      color: #e65100;
-      border-left: 4px solid #ff9800;
-      display: none;
-    }
-
-    .expiry-notice.show {
-      display: block;
-      animation: slideIn 0.3s ease;
-    }
-
     @media (max-width: 480px) {
       .container {
         padding: 1.5rem;
@@ -346,22 +346,46 @@
       .upload-area {
         padding: 2rem 1rem;
       }
+
+      .google-buttons {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .search-btn {
+        font-size: 1rem;
+        padding: 0.8rem 1.5rem;
+      }
+
+      .file-info {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+      }
+
+      .file-preview {
+        align-self: center;
+      }
     }
+    
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>🔍 多引擎以圖搜圖</h2>
+    <h2>  班陳 以圖搜圖🔍</h2>
     <div class="upload-area" id="dropArea">
-      <div class="upload-icon">📷</div>
+      <div class="upload-icon">🖼️</div>
       <div class="upload-text">點擊或拖曳圖片到此處</div>
       <div class="upload-subtext">支援 JPG、PNG、GIF 格式</div>
     </div>
     <input type="file" id="imgInput" accept="image/*">
     
-    <div class="file-name" id="fileName"></div>
-    <div class="image-preview" id="imagePreview">
-      <img id="previewImg" alt="圖片預覽">
+    <!-- 修改：檔案資訊容器，包含預覽圖片和檔案名稱 -->
+    <div class="file-info" id="fileInfo">
+      <div class="file-preview" id="filePreview">
+        <img id="previewImg" alt="圖片預覽">
+      </div>
+      <div class="file-name" id="fileName"></div>
     </div>
     
     <div class="progress-container" id="progressContainer">
@@ -372,16 +396,17 @@
     </div>
 
     <div id="resultButtons">
-      <a id="googleBtn" class="search-btn">
-        🔍 在 Google 搜尋
-      </a>
+      <div class="google-buttons">
+        <a id="googleBtn" class="search-btn">
+          Google 搜尋
+        </a>
+        <a id="lensBtn" class="search-btn">
+          Google Lens 搜尋
+        </a>
+      </div>
       <a id="saucenaoBtn" class="search-btn">
-        🎨 在 SauceNAO 搜尋
+        SauceNAO 搜尋
       </a>
-    </div>
-
-    <div class="expiry-notice" id="expiryNotice">
-      ⏰ 圖片連結將在 <span id="timeRemaining"></span> 後過期
     </div>
 
     <div id="status"></div>
@@ -397,18 +422,18 @@
     const fileInput = document.getElementById('imgInput');
     const statusDiv = document.getElementById('status');
     const errorDiv = document.getElementById('error');
-    const fileNameDiv = document.getElementById('fileName');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
     const resultButtons = document.getElementById('resultButtons');
     const googleBtn = document.getElementById('googleBtn');
+    const lensBtn = document.getElementById('lensBtn');
     const saucenaoBtn = document.getElementById('saucenaoBtn');
     const progressContainer = document.getElementById('progressContainer');
     const progressFill = document.getElementById('progressFill');
     const progressText = document.getElementById('progressText');
     const resetBtn = document.getElementById('resetBtn');
-    const imagePreview = document.getElementById('imagePreview');
+    const filePreview = document.getElementById('filePreview');
     const previewImg = document.getElementById('previewImg');
-    const expiryNotice = document.getElementById('expiryNotice');
-    const timeRemaining = document.getElementById('timeRemaining');
 
     let countdownInterval;
 
@@ -447,6 +472,13 @@
       }
     });
 
+    lensBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (lensBtn.href) {
+        window.open(lensBtn.href, '_blank');
+      }
+    });
+
     saucenaoBtn.addEventListener('click', (e) => {
       e.preventDefault();
       if (saucenaoBtn.href) {
@@ -461,8 +493,8 @@
           const data = JSON.parse(savedData);
           const now = Date.now();
           
-          // 檢查是否過期（10分鐘 = 600000毫秒）
-          if (now - data.uploadTime < 600000) {
+          // 檢查是否過期（5分鐘 = 300000毫秒）
+          if (now - data.uploadTime < 300000) {
             // 未過期，恢復狀態
             restoreImageState(data);
           } else {
@@ -476,12 +508,11 @@
     }
 
     function restoreImageState(data) {
-      fileNameDiv.textContent = `已選擇：${data.fileName}`;
-      fileNameDiv.classList.add('show');
+      fileName.textContent = `已選擇：${data.fileName}`;
+      fileInfo.classList.add('show');
       
       // 顯示圖片預覽
       previewImg.src = data.imageUrl;
-      imagePreview.classList.add('show');
       
       // 設定搜尋按鈕
       setupSearchButtons(data.imageUrl);
@@ -490,24 +521,20 @@
       resultButtons.classList.add('show');
       resetBtn.classList.add('show');
       
-      // 顯示狀態
-      showStatus('✅ 圖片已準備就緒！請選擇搜尋引擎：');
-      
-      // 開始倒數計時
-      startCountdown(data.uploadTime);
+      // 顯示狀態並開始倒數計時
+      startCountdownInStatus(data.uploadTime);
     }
 
     function handleFileSelect() {
       if (fileInput.files.length > 0) {
         const file = fileInput.files[0];
-        fileNameDiv.textContent = `已選擇：${file.name}`;
-        fileNameDiv.classList.add('show');
+        fileName.textContent = `已選擇：${file.name}`;
+        fileInfo.classList.add('show');
         
         // 顯示本地預覽
         const reader = new FileReader();
         reader.onload = (e) => {
           previewImg.src = e.target.result;
-          imagePreview.classList.add('show');
         };
         reader.readAsDataURL(file);
         
@@ -524,14 +551,12 @@
       errorDiv.classList.remove('show');
       resultButtons.classList.remove('show');
       resetBtn.classList.remove('show');
-      expiryNotice.classList.remove('show');
       clearInterval(countdownInterval);
     }
 
     function resetForm() {
       fileInput.value = '';
-      fileNameDiv.classList.remove('show');
-      imagePreview.classList.remove('show');
+      fileInfo.classList.remove('show');
       progressContainer.style.display = 'none';
       hideElements();
       progressFill.style.width = '0%';
@@ -557,7 +582,8 @@
         
         const formData = new FormData();
         formData.append('image', fileInput.files[0]);
-        const apiUrl = `https://api.imgbb.com/1/upload?expiration=600&key=${IMGBB_API_KEY}`;
+        // 修改為5分鐘過期
+        const apiUrl = `https://api.imgbb.com/1/upload?expiration=300&key=${IMGBB_API_KEY}`;
         
         updateProgress(50, '處理中...');
         
@@ -592,8 +618,6 @@
           // 更新預覽圖片為上傳後的連結
           previewImg.src = imgUrl;
           
-          showStatus('✅ 上傳成功！圖片將在 10 分鐘後自動刪除。<br>請選擇搜尋引擎：');
-
           // 設定搜尋按鈕
           setupSearchButtons(imgUrl);
 
@@ -601,8 +625,8 @@
           resultButtons.classList.add('show');
           resetBtn.classList.add('show');
           
-          // 開始倒數計時
-          startCountdown(Date.now());
+          // 開始倒數計時並顯示在狀態中
+          startCountdownInStatus(Date.now());
         }, 500);
 
       } catch (e) {
@@ -614,33 +638,40 @@
 
     function setupSearchButtons(imgUrl) {
       const encodedUrl = encodeURIComponent(imgUrl);
-      googleBtn.href = `https://www.google.com/searchbyimage?client=app&image_url=${encodedUrl}`;
+      googleBtn.href = `https://www.google.com/searchbyimage?sbisrc=google&image_url=${encodedUrl}`;
+      lensBtn.href = `https://lens.google.com/uploadbyurl?url=${encodedUrl}`;
       saucenaoBtn.href = `https://saucenao.com/search.php?url=${encodedUrl}`;
     }
 
-    function startCountdown(uploadTime) {
-      expiryNotice.classList.add('show');
-      
-      countdownInterval = setInterval(() => {
+    // 修改：將倒數計時融入狀態顯示中
+    function startCountdownInStatus(uploadTime) {
+      function updateStatusWithCountdown() {
         const now = Date.now();
         const elapsed = now - uploadTime;
-        const remaining = 600000 - elapsed; // 10分鐘 = 600000毫秒
+        const remaining = 300000 - elapsed; // 5分鐘 = 300000毫秒
         
         if (remaining <= 0) {
           // 時間到了，清除資料
           clearInterval(countdownInterval);
           localStorage.removeItem('uploadedImageData');
-          expiryNotice.classList.remove('show');
           showError('❌ 圖片連結已過期，請重新上傳。');
           resultButtons.classList.remove('show');
           return;
         }
         
-        // 更新倒數計時顯示
+        // 更新狀態顯示，包含倒數計時
         const minutes = Math.floor(remaining / 60000);
         const seconds = Math.floor((remaining % 60000) / 1000);
-        timeRemaining.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-      }, 1000);
+        const timeText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        showStatus(`✅ 上傳成功！圖片將在 ${timeText} 後自動刪除。`);
+      }
+      
+      // 立即執行一次
+      updateStatusWithCountdown();
+      
+      // 每秒更新一次
+      countdownInterval = setInterval(updateStatusWithCountdown, 1000);
     }
 
     function updateProgress(percent, text) {
