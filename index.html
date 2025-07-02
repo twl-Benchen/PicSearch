@@ -14,7 +14,7 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
       line-height: 1.6;
-      background: linear-gradient(135deg, #66eaea 0%, #1b4bb2 100%);
+      background: linear-gradient(135deg, #e6ffff 0%, #a3afca 100%);
       color: #333;
       display: flex;
       justify-content: center;
@@ -183,7 +183,7 @@
 
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, #667eea, #764ba2);
+      background: linear-gradient(90deg, #66eaea 0%, #7a0dbe 100%);
       width: 0%;
       transition: width 0.3s ease;
       border-radius: 4px;
@@ -265,12 +265,12 @@
 
     /* Google 搜尋按鈕 - 使用 Google 原本的藍色 */
     #googleBtn {
-      background: linear-gradient(135deg, #4285F4, #1a73e8);
+      background: linear-gradient(135deg, #8cafe7, #1a73e8);
     }
 
     /* Google Lens 按鈕 - 使用 Google Lens 的顏色 */
     #lensBtn {
-      background: linear-gradient(135deg, #34A853, #137333);
+      background: linear-gradient(135deg, #b68ad2, #7c2aae);
     }
 
     /* SauceNAO 按鈕 - 改為黑灰色系 */
@@ -664,7 +664,7 @@
         const seconds = Math.floor((remaining % 60000) / 1000);
         const timeText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
         
-        showStatus(`✅ 上傳成功！圖片將在 ${timeText} 後自動刪除。`);
+        showStatus(`✅ 上傳成功！圖片將在 ${timeText} 後刪除。`);
       }
       
       // 立即執行一次
