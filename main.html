@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>多引擎以圖搜圖工具</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.6;
+      background-color: #f4f7f6;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background-color: #ffffff;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px M(0, 0, 0, 0.1);
+      max-width: 450px;
+      width: 90%;
+      text-align: center;
+    }
+    h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    .upload-area {
+      border: 2px dashed #ccc;
+      border-radius: 8px;
+      padding: 2rem;
+      margin: 1.5rem 0;
+      cursor: pointer;
+      transition: border-color 0.3s, background-color 0.3s;
+    }
+    .upload-area:hover {
+      border-color: #4CAF50;
+      background-color: #f8f9fa;
+    }
+    #imgInput {
+      display: none;
+    }
+    #uploadBtn {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 0.8rem 1.5rem;
+      border-radius: 4px;
+      font-size: 1rem;
+      cursor: pointer;
+      width: 100%;
+      transition: background-color 0.3s;
+    }
+    #uploadBtn:disabled {
+      background-color: #aaa;
+      cursor: not-allowed;
+    }
+    #status, #error {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      min-height: 1.2em;
+    }
+    #status { color: #34A853; }
+    #error { color: #EA4335; }
+    .file-name {
+      margin-top: 1rem;
+      font-style: italic;
+      color: #555;
+    }
+    /* 新增的按鈕容器樣式 */
+    #resultButtons {
+      margin-top: 1.5rem;
+      display: none; /* 預設隱藏 */
+      gap: 1rem;
+      display: flex;
+      flex-direction: column;
+    }
+    .search-btn {
+      padding: 0.8rem 1.5rem;
+      border-radius: 4px;
+      font-size: 1rem;
+      cursor: pointer;
+      border: none;
+      color: white;
+      text-decoration: none; /* 移除 a 標籤底線 */
+      display: block; /* 讓 a 標籤像按鈕一樣 */
+    }
+    #googleBtn { background-color: #4285F4; } /* Google Blue */
+    #saucenaoBtn { background-color: #d6363e; } /* SauceNAO Red */
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>多引擎以圖搜圖</h2>
+    <div class="upload-area" id="dropArea">
+      <p>點擊或拖曳圖片到此處</p>
+      <p class="file-name" id="fileName"></p>
+    </div>
+    <input type="file" id="imgInput" accept="image/*">
+    <button id="uploadBtn">開始上傳</button>
+    
+    <!-- 搜尋結果按鈕，預設隱藏 -->
+    <div id="resultButtons">
+      <a id="googleBtn" class="search-btn" target="_blank">在 Google 搜尋</a>
+      <a id="saucenaoBtn" class="search-btn" target="_blank">在 SauceNAO 搜尋</a>
+    </div>
+
+    <div id="status"></div>
+    <div id="error"></div>
+  </div>
+
+  <script>
+    // 1. 填入你的 ImgBB API Key
+    const IMGBB_API_KEY = '2c53aa8d5cd62de755c6e88a11d66e05';
+
+    const dropArea = document.getElementById('dropArea');
+    const fileInput = document.getElementById('imgInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const statusDiv = document.getElementById('status');
+    const errorDiv = document.getElementById('error');
+    const fileNameDiv = document.getElementById('fileName');
+    const resultButtons = document.getElementById('resultButtons');
+    const googleBtn = document.getElementById('googleBtn');
+    const saucenaoBtn = document.getElementById('saucenaoBtn');
+
+    dropArea.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length > 0) {
+        fileNameDiv.textContent = `已選擇：${fileInput.files[0].name}`;
+        resultButtons.style.display = 'none'; // 選擇新檔案時隱藏舊按鈕
+        uploadBtn.style.display = 'block'; // 顯示上傳按鈕
+      }
+    });
+
+    // 拖曳功能 (程式碼不變)
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => dropArea.addEventListener(eventName, e => e.preventDefault(), false));
+    dropArea.addEventListener('drop', e => {
+      fileInput.files = e.dataTransfer.files;
+      fileNameDiv.textContent = `已選擇：${fileInput.files[0].name}`;
+      resultButtons.style.display = 'none';
+      uploadBtn.style.display = 'block';
+    }, false);
+
+    // 上傳按鈕點擊事件
+    uploadBtn.addEventListener('click', async function() {
+      statusDiv.textContent = '';
+      errorDiv.textContent = '';
+
+      if (!fileInput.files.length) {
+        errorDiv.textContent = '請先選擇一個圖片檔案。';
+        return;
+      }
+
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = '處理中...';
+      statusDiv.textContent = '圖片正在上傳，請稍候...';
+
+      try {
+        const formData = new FormData();
+        formData.append('image', fileInput.files[0]);
+        const apiUrl = `https://api.imgbb.com/1/upload?expiration=600&key=${IMGBB_API_KEY}`;
+        const response = await fetch(apiUrl, { method: 'POST', body: formData });
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error('ImgBB 上傳失敗：' + (result.error?.message || '未知錯誤'));
+        }
+
+        const imgUrl = result.data.url;
+        statusDiv.innerHTML = `上傳成功！<br>圖片將在 10 分鐘後刪除。請選擇搜尋引擎：`;
+
+        // *** 核心修改：設定按鈕的連結並顯示它們 ***
+        const encodedUrl = encodeURIComponent(imgUrl);
+        googleBtn.href = `https://www.google.com/searchbyimage?client=app&image_url=${encodedUrl}`;
+        saucenaoBtn.href = `https://saucenao.com/search.php?url=${encodedUrl}`;
+
+        // 顯示結果按鈕，並隱藏上傳按鈕
+        resultButtons.style.display = 'flex';
+        uploadBtn.style.display = 'none';
+
+      } catch (e) {
+        errorDiv.textContent = '發生錯誤：' + e.message;
+      } finally {
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = '開始上傳';
+      }
+    });
+  </script>
+</body>
+</html>
