@@ -5,190 +5,491 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>多引擎以圖搜圖工具</title>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
       line-height: 1.6;
-      background-color: #f4f7f6;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: #333;
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      margin: 0;
+      padding: 20px;
     }
+
     .container {
-      background-color: #ffffff;
-      padding: 2rem;
-      border-radius: 8px;
-      box-shadow: 0 4px M(0, 0, 0, 0.1);
-      max-width: 450px;
-      width: 90%;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 2.5rem;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      max-width: 500px;
+      width: 100%;
       text-align: center;
+      transition: all 0.3s ease;
     }
+
+    .container:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+    }
+
     h2 {
-      margin-top: 0;
-      color: #333;
+      margin-bottom: 2rem;
+      color: #4a5568;
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
+
     .upload-area {
-      border: 2px dashed #ccc;
-      border-radius: 8px;
-      padding: 2rem;
-      margin: 1.5rem 0;
+      border: 3px dashed #cbd5e0;
+      border-radius: 16px;
+      padding: 3rem 2rem;
+      margin: 2rem 0;
       cursor: pointer;
-      transition: border-color 0.3s, background-color 0.3s;
+      transition: all 0.3s ease;
+      background: linear-gradient(145deg, #f8fafc, #e2e8f0);
+      position: relative;
+      overflow: hidden;
     }
+
+    .upload-area::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+      transition: left 0.5s;
+    }
+
+    .upload-area:hover::before {
+      left: 100%;
+    }
+
     .upload-area:hover {
-      border-color: #4CAF50;
-      background-color: #f8f9fa;
+      border-color: #667eea;
+      background: linear-gradient(145deg, #f0f4ff, #e6f0ff);
+      transform: scale(1.02);
     }
+
+    .upload-area.dragover {
+      border-color: #4299e1;
+      background: linear-gradient(145deg, #ebf8ff, #bee3f8);
+      transform: scale(1.05);
+    }
+
+    .upload-icon {
+      font-size: 3rem;
+      color: #a0aec0;
+      margin-bottom: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .upload-area:hover .upload-icon {
+      color: #667eea;
+      transform: scale(1.1);
+    }
+
+    .upload-text {
+      font-size: 1.1rem;
+      color: #4a5568;
+      font-weight: 500;
+    }
+
+    .upload-subtext {
+      font-size: 0.9rem;
+      color: #718096;
+      margin-top: 0.5rem;
+    }
+
     #imgInput {
       display: none;
     }
-    #uploadBtn {
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      padding: 0.8rem 1.5rem;
-      border-radius: 4px;
-      font-size: 1rem;
-      cursor: pointer;
-      width: 100%;
-      transition: background-color 0.3s;
-    }
-    #uploadBtn:disabled {
-      background-color: #aaa;
-      cursor: not-allowed;
-    }
-    #status, #error {
-      margin-top: 1rem;
-      font-size: 0.9rem;
-      min-height: 1.2em;
-    }
-    #status { color: #34A853; }
-    #error { color: #EA4335; }
+
     .file-name {
-      margin-top: 1rem;
-      font-style: italic;
-      color: #555;
-    }
-    /* 新增的按鈕容器樣式 */
-    #resultButtons {
       margin-top: 1.5rem;
-      display: none; /* 預設隱藏 */
+      padding: 1rem;
+      background: linear-gradient(135deg, #e6fffa, #b2f5ea);
+      border-radius: 12px;
+      font-weight: 500;
+      color: #2d3748;
+      border-left: 4px solid #38b2ac;
+      display: none;
+    }
+
+    .file-name.show {
+      display: block;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .progress-container {
+      margin: 1.5rem 0;
+      display: none;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background-color: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      width: 0%;
+      transition: width 0.3s ease;
+      border-radius: 4px;
+    }
+
+    .progress-text {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      color: #4a5568;
+    }
+
+    #resultButtons {
+      margin-top: 2rem;
+      display: none;
       gap: 1rem;
-      display: flex;
       flex-direction: column;
     }
+
+    #resultButtons.show {
+      display: flex;
+      animation: fadeInUp 0.5s ease;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
     .search-btn {
-      padding: 0.8rem 1.5rem;
-      border-radius: 4px;
-      font-size: 1rem;
+      padding: 1rem 2rem;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-weight: 600;
       cursor: pointer;
       border: none;
       color: white;
-      text-decoration: none; /* 移除 a 標籤底線 */
-      display: block; /* 讓 a 標籤像按鈕一樣 */
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
     }
-    #googleBtn { background-color: #4285F4; } /* Google Blue */
-    #saucenaoBtn { background-color: #d6363e; } /* SauceNAO Red */
+
+    .search-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .search-btn:hover::before {
+      left: 100%;
+    }
+
+    .search-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    #googleBtn {
+      background: linear-gradient(135deg, #4285F4, #34A853);
+    }
+
+    #saucenaoBtn {
+      background: linear-gradient(135deg, #d6363e, #ff6b6b);
+    }
+
+    #status, #error {
+      margin-top: 1.5rem;
+      font-size: 1rem;
+      min-height: 1.2em;
+      padding: 1rem;
+      border-radius: 12px;
+      font-weight: 500;
+    }
+
+    #status {
+      background: linear-gradient(135deg, #f0fff4, #c6f6d5);
+      color: #22543d;
+      border-left: 4px solid #38a169;
+      display: none;
+    }
+
+    #status.show {
+      display: block;
+      animation: slideIn 0.3s ease;
+    }
+
+    #error {
+      background: linear-gradient(135deg, #fff5f5, #fed7d7);
+      color: #742a2a;
+      border-left: 4px solid #e53e3e;
+      display: none;
+    }
+
+    #error.show {
+      display: block;
+      animation: slideIn 0.3s ease;
+    }
+
+    .reset-btn {
+      margin-top: 1rem;
+      padding: 0.8rem 1.5rem;
+      background: linear-gradient(135deg, #718096, #4a5568);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+      display: none;
+    }
+
+    .reset-btn.show {
+      display: inline-block;
+    }
+
+    .reset-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 1.5rem;
+        margin: 10px;
+      }
+      
+      h2 {
+        font-size: 1.5rem;
+      }
+      
+      .upload-area {
+        padding: 2rem 1rem;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>多引擎以圖搜圖</h2>
+    <h2>🔍 多引擎以圖搜圖</h2>
     <div class="upload-area" id="dropArea">
-      <p>點擊或拖曳圖片到此處</p>
-      <p class="file-name" id="fileName"></p>
+      <div class="upload-icon">📷</div>
+      <div class="upload-text">點擊或拖曳圖片到此處</div>
+      <div class="upload-subtext">支援 JPG、PNG、GIF 格式</div>
     </div>
     <input type="file" id="imgInput" accept="image/*">
-    <button id="uploadBtn">開始上傳</button>
     
-    <!-- 搜尋結果按鈕，預設隱藏 -->
+    <div class="file-name" id="fileName"></div>
+    
+    <div class="progress-container" id="progressContainer">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-text" id="progressText">上傳中...</div>
+    </div>
+
     <div id="resultButtons">
-      <a id="googleBtn" class="search-btn" target="_blank">在 Google 搜尋</a>
-      <a id="saucenaoBtn" class="search-btn" target="_blank">在 SauceNAO 搜尋</a>
+      <a id="googleBtn" class="search-btn" target="_blank">
+        🔍 在 Google 搜尋
+      </a>
+      <a id="saucenaoBtn" class="search-btn" target="_blank">
+        🎨 在 SauceNAO 搜尋
+      </a>
     </div>
 
     <div id="status"></div>
     <div id="error"></div>
+    
+    <button class="reset-btn" id="resetBtn">重新選擇圖片</button>
   </div>
 
   <script>
-    // 1. 填入你的 ImgBB API Key
     const IMGBB_API_KEY = '2c53aa8d5cd62de755c6e88a11d66e05';
 
     const dropArea = document.getElementById('dropArea');
     const fileInput = document.getElementById('imgInput');
-    const uploadBtn = document.getElementById('uploadBtn');
     const statusDiv = document.getElementById('status');
     const errorDiv = document.getElementById('error');
     const fileNameDiv = document.getElementById('fileName');
     const resultButtons = document.getElementById('resultButtons');
     const googleBtn = document.getElementById('googleBtn');
     const saucenaoBtn = document.getElementById('saucenaoBtn');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    const resetBtn = document.getElementById('resetBtn');
 
+    // 點擊上傳區域選擇檔案
     dropArea.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', () => {
-      if (fileInput.files.length > 0) {
-        fileNameDiv.textContent = `已選擇：${fileInput.files[0].name}`;
-        resultButtons.style.display = 'none'; // 選擇新檔案時隱藏舊按鈕
-        uploadBtn.style.display = 'block'; // 顯示上傳按鈕
-      }
+
+    // 檔案選擇後自動上傳
+    fileInput.addEventListener('change', handleFileSelect);
+
+    // 拖曳功能
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      dropArea.addEventListener(eventName, e => e.preventDefault(), false);
     });
 
-    // 拖曳功能 (程式碼不變)
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => dropArea.addEventListener(eventName, e => e.preventDefault(), false));
+    dropArea.addEventListener('dragenter', () => dropArea.classList.add('dragover'));
+    dropArea.addEventListener('dragleave', () => dropArea.classList.remove('dragover'));
+    dropArea.addEventListener('dragover', () => dropArea.classList.add('dragover'));
+    
     dropArea.addEventListener('drop', e => {
+      dropArea.classList.remove('dragover');
       fileInput.files = e.dataTransfer.files;
-      fileNameDiv.textContent = `已選擇：${fileInput.files[0].name}`;
-      resultButtons.style.display = 'none';
-      uploadBtn.style.display = 'block';
-    }, false);
+      handleFileSelect();
+    });
 
-    // 上傳按鈕點擊事件
-    uploadBtn.addEventListener('click', async function() {
-      statusDiv.textContent = '';
-      errorDiv.textContent = '';
+    // 重置按鈕
+    resetBtn.addEventListener('click', resetForm);
 
+    function handleFileSelect() {
+      if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        fileNameDiv.textContent = `已選擇：${file.name}`;
+        fileNameDiv.classList.add('show');
+        
+        // 清除之前的結果
+        hideElements();
+        
+        // 自動開始上傳
+        uploadImage();
+      }
+    }
+
+    function hideElements() {
+      statusDiv.classList.remove('show');
+      errorDiv.classList.remove('show');
+      resultButtons.classList.remove('show');
+      resetBtn.classList.remove('show');
+    }
+
+    function resetForm() {
+      fileInput.value = '';
+      fileNameDiv.classList.remove('show');
+      progressContainer.style.display = 'none';
+      hideElements();
+      progressFill.style.width = '0%';
+    }
+
+    async function uploadImage() {
       if (!fileInput.files.length) {
-        errorDiv.textContent = '請先選擇一個圖片檔案。';
+        showError('請先選擇一個圖片檔案。');
         return;
       }
 
-      uploadBtn.disabled = true;
-      uploadBtn.textContent = '處理中...';
-      statusDiv.textContent = '圖片正在上傳，請稍候...';
+      // 顯示進度條
+      progressContainer.style.display = 'block';
+      progressFill.style.width = '0%';
+      progressText.textContent = '準備上傳...';
 
       try {
+        // 模擬進度更新
+        updateProgress(20, '正在上傳圖片...');
+        
         const formData = new FormData();
         formData.append('image', fileInput.files[0]);
         const apiUrl = `https://api.imgbb.com/1/upload?expiration=600&key=${IMGBB_API_KEY}`;
-        const response = await fetch(apiUrl, { method: 'POST', body: formData });
+        
+        updateProgress(50, '處理中...');
+        
+        const response = await fetch(apiUrl, { 
+          method: 'POST', 
+          body: formData 
+        });
+        
+        updateProgress(80, '解析回應...');
+        
         const result = await response.json();
 
         if (!result.success) {
           throw new Error('ImgBB 上傳失敗：' + (result.error?.message || '未知錯誤'));
         }
 
-        const imgUrl = result.data.url;
-        statusDiv.innerHTML = `上傳成功！<br>圖片將在 10 分鐘後刪除。請選擇搜尋引擎：`;
+        updateProgress(100, '上傳完成！');
+        
+        setTimeout(() => {
+          progressContainer.style.display = 'none';
+          
+          const imgUrl = result.data.url;
+          showStatus('✅ 上傳成功！圖片將在 10 分鐘後自動刪除。<br>請選擇搜尋引擎：');
 
-        // *** 核心修改：設定按鈕的連結並顯示它們 ***
-        const encodedUrl = encodeURIComponent(imgUrl);
-        googleBtn.href = `https://www.google.com/searchbyimage?client=app&image_url=${encodedUrl}`;
-        saucenaoBtn.href = `https://saucenao.com/search.php?url=${encodedUrl}`;
+          // 設定搜尋按鈕連結
+          const encodedUrl = encodeURIComponent(imgUrl);
+          googleBtn.href = `https://www.google.com/searchbyimage?client=app&image_url=${encodedUrl}`;
+          saucenaoBtn.href = `https://saucenao.com/search.php?url=${encodedUrl}`;
 
-        // 顯示結果按鈕，並隱藏上傳按鈕
-        resultButtons.style.display = 'flex';
-        uploadBtn.style.display = 'none';
+          // 顯示結果按鈕和重置按鈕
+          resultButtons.classList.add('show');
+          resetBtn.classList.add('show');
+        }, 500);
 
       } catch (e) {
-        errorDiv.textContent = '發生錯誤：' + e.message;
-      } finally {
-        uploadBtn.disabled = false;
-        uploadBtn.textContent = '開始上傳';
+        progressContainer.style.display = 'none';
+        showError('❌ 發生錯誤：' + e.message);
+        resetBtn.classList.add('show');
       }
-    });
+    }
+
+    function updateProgress(percent, text) {
+      progressFill.style.width = percent + '%';
+      progressText.textContent = text;
+    }
+
+    function showStatus(message) {
+      statusDiv.innerHTML = message;
+      statusDiv.classList.add('show');
+      errorDiv.classList.remove('show');
+    }
+
+    function showError(message) {
+      errorDiv.textContent = message;
+      errorDiv.classList.add('show');
+      statusDiv.classList.remove('show');
+    }
   </script>
 </body>
 </html>
