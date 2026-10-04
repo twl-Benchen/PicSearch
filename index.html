@@ -218,9 +218,10 @@
       }
     }
 
-    /* Google 按鈕組樣式 */
-    .google-buttons {
-      display: flex;
+    /* 搜尋引擎按鈕網格 */
+    .engine-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 0.5rem;
     }
 
@@ -241,6 +242,7 @@
       position: relative;
       overflow: hidden;
       flex: 1;
+      font-family: inherit;
     }
 
     .search-btn::before {
@@ -263,9 +265,16 @@
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
     }
 
-    /* Google 搜尋按鈕 - 使用 Google 原本的藍色 */
-    #googleBtn {
-      background: linear-gradient(135deg, #8cafe7, #1a73e8);
+    .search-btn:focus-visible,
+    .upload-area:focus-visible {
+      outline: 3px solid #4299e1;
+      outline-offset: 3px;
+    }
+
+    /* 全部搜尋按鈕 - 使用標題的漸層色 */
+    #searchAllBtn {
+      background: linear-gradient(135deg, #32ccc4, #1b5a78);
+      font-size: 1.15rem;
     }
 
     /* Google Lens 按鈕 - 使用 Google Lens 的顏色 */
@@ -273,9 +282,35 @@
       background: linear-gradient(135deg, #b68ad2, #7c2aae);
     }
 
-    /* SauceNAO 按鈕 - 改為黑灰色系 */
+    /* SauceNAO 按鈕 - 黑灰色系 */
     #saucenaoBtn {
       background: linear-gradient(135deg, #4a5568, #2d3748);
+    }
+
+    /* Bing 按鈕 - Bing 青綠 */
+    #bingBtn {
+      background: linear-gradient(135deg, #4fd1c5, #00796b);
+    }
+
+    /* TinEye 按鈕 - 藍色系 */
+    #tineyeBtn {
+      background: linear-gradient(135deg, #8cafe7, #1a73e8);
+    }
+
+    .popup-hint {
+      font-size: 0.9rem;
+      color: #975a16;
+      background: #fffaf0;
+      border-left: 4px solid #dd6b20;
+      border-radius: 8px;
+      padding: 0.6rem 0.8rem;
+      text-align: left;
+      display: none;
+    }
+
+    .popup-hint.show {
+      display: block;
+      animation: slideIn 0.3s ease;
     }
 
     #status, #error {
@@ -347,14 +382,9 @@
         padding: 2rem 1rem;
       }
 
-      .google-buttons {
-        flex-direction: column;
-        gap: 1rem;
-      }
-
       .search-btn {
         font-size: 1rem;
-        padding: 0.8rem 1.5rem;
+        padding: 0.8rem 1rem;
       }
 
       .file-info {
@@ -373,10 +403,10 @@
 <body>
   <div class="container">
     <h2>  班陳 以圖搜圖</h2>
-    <div class="upload-area" id="dropArea">
-      <img src="https://github.com/twl-Benchen/PicSearch/blob/main/images/Notes_250702_151640_774.png?raw=true" alt="上傳圖示" class="upload-icon">
-      <div class="upload-text">點擊或拖曳圖片到此處</div>
-      <div class="upload-subtext">支援 JPG、PNG、GIF 格式</div>
+    <div class="upload-area" id="dropArea" role="button" tabindex="0" aria-label="選擇要搜尋的圖片">
+      <img src="images/Notes_250702_151640_774.png" alt="" class="upload-icon">
+      <div class="upload-text">點擊、拖曳或 Ctrl+V 貼上圖片</div>
+      <div class="upload-subtext">支援 JPG、PNG、GIF、WEBP 等格式，最大 32MB</div>
     </div>
     <input type="file" id="imgInput" accept="image/*">
     
@@ -396,17 +426,16 @@
     </div>
 
     <div id="resultButtons">
-      <div class="google-buttons">
-        <a id="googleBtn" class="search-btn">
-          Google 搜尋
-        </a>
-        <a id="lensBtn" class="search-btn">
-          Google Lens 搜尋
-        </a>
+      <button type="button" id="searchAllBtn" class="search-btn">
+        全部搜尋
+      </button>
+      <div class="popup-hint" id="popupHint" role="alert"></div>
+      <div class="engine-grid">
+        <a id="lensBtn" class="search-btn" target="_blank" rel="noopener noreferrer">Google Lens</a>
+        <a id="saucenaoBtn" class="search-btn" target="_blank" rel="noopener noreferrer">SauceNAO</a>
+        <a id="bingBtn" class="search-btn" target="_blank" rel="noopener noreferrer">Bing</a>
+        <a id="tineyeBtn" class="search-btn" target="_blank" rel="noopener noreferrer">TinEye</a>
       </div>
-      <a id="saucenaoBtn" class="search-btn">
-        SauceNAO 搜尋
-      </a>
     </div>
 
     <div id="status"></div>
@@ -417,6 +446,16 @@
 
   <script>
     const IMGBB_API_KEY = '2c53aa8d5cd62de755c6e88a11d66e05';
+    const MAX_FILE_SIZE = 32 * 1024 * 1024; // ImgBB 單檔上限 32MB
+    const EXPIRATION_MS = 300000; // 5分鐘 = 300000毫秒
+
+    // 搜尋引擎設定（u 為已編碼的圖片網址）
+    const SEARCH_ENGINES = [
+      { id: 'lensBtn', buildUrl: u => `https://lens.google.com/uploadbyurl?url=${u}` },
+      { id: 'saucenaoBtn', buildUrl: u => `https://saucenao.com/search.php?url=${u}` },
+      { id: 'bingBtn', buildUrl: u => `https://www.bing.com/images/search?view=detailv2&iss=sbi&q=imgurl:${u}` },
+      { id: 'tineyeBtn', buildUrl: u => `https://tineye.com/search?url=${u}` }
+    ];
 
     const dropArea = document.getElementById('dropArea');
     const fileInput = document.getElementById('imgInput');
@@ -425,17 +464,18 @@
     const fileInfo = document.getElementById('fileInfo');
     const fileName = document.getElementById('fileName');
     const resultButtons = document.getElementById('resultButtons');
-    const googleBtn = document.getElementById('googleBtn');
-    const lensBtn = document.getElementById('lensBtn');
-    const saucenaoBtn = document.getElementById('saucenaoBtn');
+    const searchAllBtn = document.getElementById('searchAllBtn');
+    const popupHint = document.getElementById('popupHint');
     const progressContainer = document.getElementById('progressContainer');
     const progressFill = document.getElementById('progressFill');
     const progressText = document.getElementById('progressText');
     const resetBtn = document.getElementById('resetBtn');
-    const filePreview = document.getElementById('filePreview');
     const previewImg = document.getElementById('previewImg');
 
     let countdownInterval;
+    let currentXhr = null;      // 進行中的上傳請求
+    let currentUploadId = 0;    // 用來忽略舊上傳的回應
+    let previewObjectUrl = null;
 
     // 頁面載入時檢查是否有保存的圖片連結
     window.addEventListener('load', checkSavedImage);
@@ -443,8 +483,20 @@
     // 點擊上傳區域選擇檔案
     dropArea.addEventListener('click', () => fileInput.click());
 
+    // 鍵盤操作：Enter 或空白鍵選擇檔案
+    dropArea.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        fileInput.click();
+      }
+    });
+
     // 檔案選擇後自動上傳
-    fileInput.addEventListener('change', handleFileSelect);
+    fileInput.addEventListener('change', () => {
+      handleFile(fileInput.files[0]);
+      // 清空，讓同一個檔案可以再次選擇
+      fileInput.value = '';
+    });
 
     // 拖曳功能
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -454,35 +506,46 @@
     dropArea.addEventListener('dragenter', () => dropArea.classList.add('dragover'));
     dropArea.addEventListener('dragleave', () => dropArea.classList.remove('dragover'));
     dropArea.addEventListener('dragover', () => dropArea.classList.add('dragover'));
-    
+
     dropArea.addEventListener('drop', e => {
       dropArea.classList.remove('dragover');
-      fileInput.files = e.dataTransfer.files;
-      handleFileSelect();
+      handleFile(e.dataTransfer.files[0]);
+    });
+
+    // Ctrl+V 貼上圖片
+    document.addEventListener('paste', e => {
+      const items = e.clipboardData ? Array.from(e.clipboardData.items) : [];
+      const imageItem = items.find(item => item.kind === 'file' && item.type.startsWith('image/'));
+      if (imageItem) {
+        e.preventDefault();
+        handleFile(imageItem.getAsFile());
+      } else if (items.some(item => item.kind === 'file')) {
+        showError('❌ 剪貼簿中的檔案不是圖片。');
+      }
     });
 
     // 重置按鈕
     resetBtn.addEventListener('click', resetForm);
 
-    // 搜尋按鈕點擊事件（在新分頁開啟）
-    googleBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (googleBtn.href) {
-        window.open(googleBtn.href, '_blank');
-      }
-    });
+    // 全部搜尋：一次開啟所有搜尋引擎
+    searchAllBtn.addEventListener('click', () => {
+      let blocked = 0;
+      SEARCH_ENGINES.forEach(engine => {
+        const url = document.getElementById(engine.id).href;
+        if (!url) return;
+        const win = window.open(url, '_blank');
+        if (win) {
+          win.opener = null;
+        } else {
+          blocked++;
+        }
+      });
 
-    lensBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (lensBtn.href) {
-        window.open(lensBtn.href, '_blank');
-      }
-    });
-
-    saucenaoBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (saucenaoBtn.href) {
-        window.open(saucenaoBtn.href, '_blank');
+      if (blocked > 0) {
+        popupHint.textContent = `⚠️ 瀏覽器擋下了 ${blocked} 個分頁。請在網址列允許此網站的「彈出式視窗」後再按一次，或直接點下方個別按鈕。`;
+        popupHint.classList.add('show');
+      } else {
+        popupHint.classList.remove('show');
       }
     });
 
@@ -491,10 +554,9 @@
         const savedData = localStorage.getItem('uploadedImageData');
         if (savedData) {
           const data = JSON.parse(savedData);
-          const now = Date.now();
-          
-          // 檢查是否過期（5分鐘 = 300000毫秒）
-          if (now - data.uploadTime < 300000) {
+
+          // 檢查是否過期
+          if (Date.now() - data.uploadTime < EXPIRATION_MS) {
             // 未過期，恢復狀態
             restoreImageState(data);
           } else {
@@ -511,178 +573,230 @@
     function restoreImageState(data) {
       fileName.textContent = `已選擇：${data.fileName}`;
       fileInfo.classList.add('show');
-      
+
       // 顯示圖片預覽
       previewImg.src = data.imageUrl;
-      
-      // 設定搜尋按鈕
-      setupSearchButtons(data.imageUrl);
-      
-      // 顯示結果按鈕
-      resultButtons.classList.add('show');
-      resetBtn.classList.add('show');
-      
-      // 顯示狀態並開始倒數計時
-      startCountdownInStatus(data.uploadTime);
+
+      showResults(data.imageUrl, data.uploadTime);
     }
 
-    function handleFileSelect() {
-      if (fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        fileName.textContent = `已選擇：${file.name}`;
-        fileInfo.classList.add('show');
-        
-        // 顯示本地預覽
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          previewImg.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-        
-        // 清除之前的結果
-        hideElements();
-        
-        // 自動開始上傳
-        uploadImage();
+    function handleFile(file) {
+      if (!file) return;
+
+      if (!file.type.startsWith('image/')) {
+        showError('❌ 這不是圖片檔案，請選擇 JPG、PNG、GIF、WEBP 等格式。');
+        return;
       }
+
+      if (file.size > MAX_FILE_SIZE) {
+        const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+        showError(`❌ 圖片太大（${sizeMB}MB），最大只能 32MB。`);
+        return;
+      }
+
+      const displayName = file.name || '剪貼簿圖片';
+      fileName.textContent = `已選擇：${displayName}`;
+      fileInfo.classList.add('show');
+
+      // 顯示本地預覽
+      if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+      previewObjectUrl = URL.createObjectURL(file);
+      previewImg.src = previewObjectUrl;
+
+      // 清除之前的結果
+      hideElements();
+
+      // 自動開始上傳
+      uploadImage(file, displayName);
     }
 
     function hideElements() {
       statusDiv.classList.remove('show');
       errorDiv.classList.remove('show');
       resultButtons.classList.remove('show');
+      popupHint.classList.remove('show');
       resetBtn.classList.remove('show');
       clearInterval(countdownInterval);
     }
 
-    function resetForm() {
-      fileInput.value = '';
+    function abortUpload() {
+      currentUploadId++;
+      if (currentXhr) {
+        currentXhr.abort();
+        currentXhr = null;
+      }
+    }
+
+    function clearPreview() {
       fileInfo.classList.remove('show');
-      progressContainer.style.display = 'none';
-      hideElements();
-      progressFill.style.width = '0%';
-      
-      // 清除保存的資料
+      previewImg.removeAttribute('src');
+      if (previewObjectUrl) {
+        URL.revokeObjectURL(previewObjectUrl);
+        previewObjectUrl = null;
+      }
+    }
+
+    function clearSavedImage() {
       try {
         localStorage.removeItem('uploadedImageData');
       } catch (e) {
         console.log('localStorage not available');
       }
-      clearInterval(countdownInterval);
     }
 
-    async function uploadImage() {
-      if (!fileInput.files.length) {
-        showError('請先選擇一個圖片檔案。');
-        return;
-      }
+    function resetForm() {
+      abortUpload();
+      fileInput.value = '';
+      clearPreview();
+      progressContainer.style.display = 'none';
+      hideElements();
+      progressFill.style.width = '0%';
+
+      // 清除保存的資料
+      clearSavedImage();
+    }
+
+    function uploadImage(file, displayName) {
+      // 取消上一個還沒完成的上傳，避免結果互相覆蓋
+      abortUpload();
+      const uploadId = currentUploadId;
 
       // 顯示進度條
       progressContainer.style.display = 'block';
-      progressFill.style.width = '0%';
-      progressText.textContent = '準備上傳...';
+      updateProgress(0, '準備上傳...');
 
-      try {
-        updateProgress(20, '正在上傳圖片...');
-        
-        const formData = new FormData();
-        formData.append('image', fileInput.files[0]);
-        // 修改為5分鐘過期
-        const apiUrl = `https://api.imgbb.com/1/upload?expiration=300&key=${IMGBB_API_KEY}`;
-        
-        updateProgress(50, '處理中...');
-        
-        const response = await fetch(apiUrl, { 
-          method: 'POST', 
-          body: formData 
-        });
-        
-        updateProgress(80, '解析回應...');
-        
-        const result = await response.json();
+      const formData = new FormData();
+      formData.append('image', file);
+      const apiUrl = `https://api.imgbb.com/1/upload?expiration=${EXPIRATION_MS / 1000}&key=${IMGBB_API_KEY}`;
 
-        if (!result.success) {
-          throw new Error('ImgBB 上傳失敗：' + (result.error?.message || '未知錯誤'));
+      const xhr = new XMLHttpRequest();
+      currentXhr = xhr;
+      xhr.open('POST', apiUrl);
+      xhr.timeout = 60000;
+
+      // 真實上傳進度（上傳完成後保留最後一段給伺服器處理）
+      xhr.upload.onprogress = e => {
+        if (uploadId !== currentUploadId || !e.lengthComputable) return;
+        const percent = Math.round((e.loaded / e.total) * 90);
+        updateProgress(percent, `正在上傳圖片... ${Math.round((e.loaded / e.total) * 100)}%`);
+      };
+
+      xhr.upload.onload = () => {
+        if (uploadId !== currentUploadId) return;
+        updateProgress(95, '伺服器處理中...');
+      };
+
+      xhr.onload = () => {
+        if (uploadId !== currentUploadId) return;
+        currentXhr = null;
+
+        let result = null;
+        try {
+          result = JSON.parse(xhr.responseText);
+        } catch (e) {
+          // 非 JSON 回應（例如伺服器錯誤頁面）
         }
 
-        updateProgress(100, '上傳完成！');
-        
-        setTimeout(() => {
-          progressContainer.style.display = 'none';
-          
-          const imgUrl = result.data.url;
-          
-          // 保存圖片資料到本地存儲
-          const imageData = {
-            imageUrl: imgUrl,
-            fileName: fileInput.files[0].name,
-            uploadTime: Date.now()
-          };
-          try {
-            localStorage.setItem('uploadedImageData', JSON.stringify(imageData));
-          } catch (e) {
-            console.log('localStorage not available');
-          }
-          
-          // 更新預覽圖片為上傳後的連結
-          previewImg.src = imgUrl;
-          
-          // 設定搜尋按鈕
-          setupSearchButtons(imgUrl);
+        if (xhr.status < 200 || xhr.status >= 300 || !result || !result.success) {
+          const reason = result?.error?.message || `伺服器回應 ${xhr.status}`;
+          uploadFailed('ImgBB 上傳失敗：' + reason);
+          return;
+        }
 
-          // 顯示結果按鈕和重置按鈕
-          resultButtons.classList.add('show');
-          resetBtn.classList.add('show');
-          
-          // 開始倒數計時並顯示在狀態中
-          startCountdownInStatus(Date.now());
-        }, 500);
+        onUploadSuccess(result.data.url, displayName, uploadId);
+      };
 
-      } catch (e) {
+      xhr.onerror = () => {
+        if (uploadId !== currentUploadId) return;
+        uploadFailed('網路錯誤，請檢查連線後再試一次。');
+      };
+
+      xhr.ontimeout = () => {
+        if (uploadId !== currentUploadId) return;
+        uploadFailed('上傳逾時，請再試一次。');
+      };
+
+      xhr.send(formData);
+    }
+
+    function uploadFailed(message) {
+      currentXhr = null;
+      progressContainer.style.display = 'none';
+      showError('❌ 發生錯誤：' + message);
+      resetBtn.classList.add('show');
+    }
+
+    function onUploadSuccess(imgUrl, displayName, uploadId) {
+      updateProgress(100, '上傳完成！');
+
+      setTimeout(() => {
+        if (uploadId !== currentUploadId) return;
         progressContainer.style.display = 'none';
-        showError('❌ 發生錯誤：' + e.message);
-        resetBtn.classList.add('show');
-      }
+
+        const uploadTime = Date.now();
+
+        // 保存圖片資料到本地存儲
+        const imageData = {
+          imageUrl: imgUrl,
+          fileName: displayName,
+          uploadTime: uploadTime
+        };
+        try {
+          localStorage.setItem('uploadedImageData', JSON.stringify(imageData));
+        } catch (e) {
+          console.log('localStorage not available');
+        }
+
+        showResults(imgUrl, uploadTime);
+      }, 500);
+    }
+
+    function showResults(imgUrl, uploadTime) {
+      setupSearchButtons(imgUrl);
+
+      // 顯示結果按鈕和重置按鈕
+      resultButtons.classList.add('show');
+      resetBtn.classList.add('show');
+
+      // 開始倒數計時並顯示在狀態中
+      startCountdownInStatus(uploadTime);
     }
 
     function setupSearchButtons(imgUrl) {
       const encodedUrl = encodeURIComponent(imgUrl);
-      googleBtn.href = `https://www.google.com/searchbyimage?sbisrc=google&image_url=${encodedUrl}`;
-      lensBtn.href = `https://lens.google.com/uploadbyurl?url=${encodedUrl}`;
-      saucenaoBtn.href = `https://saucenao.com/search.php?url=${encodedUrl}`;
+      SEARCH_ENGINES.forEach(engine => {
+        document.getElementById(engine.id).href = engine.buildUrl(encodedUrl);
+      });
     }
 
-    // 修改：將倒數計時融入狀態顯示中
+    // 將倒數計時融入狀態顯示中
     function startCountdownInStatus(uploadTime) {
       function updateStatusWithCountdown() {
-        const now = Date.now();
-        const elapsed = now - uploadTime;
-        const remaining = 300000 - elapsed; // 5分鐘 = 300000毫秒
-        
+        const remaining = EXPIRATION_MS - (Date.now() - uploadTime);
+
         if (remaining <= 0) {
-          // 時間到了，清除資料
+          // 時間到了，清除資料與已失效的預覽
           clearInterval(countdownInterval);
-          try {
-            localStorage.removeItem('uploadedImageData');
-          } catch (e) {
-            console.log('localStorage not available');
-          }
-          showError('❌ 圖片連結已過期，請重新上傳。');
+          clearSavedImage();
+          clearPreview();
           resultButtons.classList.remove('show');
+          showError('❌ 圖片連結已過期，請重新上傳。');
           return;
         }
-        
+
         // 更新狀態顯示，包含倒數計時
         const minutes = Math.floor(remaining / 60000);
         const seconds = Math.floor((remaining % 60000) / 1000);
         const timeText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        
+
         showStatus(`✅ 上傳成功！圖片將在 ${timeText} 後刪除。`);
       }
-      
+
+      clearInterval(countdownInterval);
+
       // 立即執行一次
       updateStatusWithCountdown();
-      
+
       // 每秒更新一次
       countdownInterval = setInterval(updateStatusWithCountdown, 1000);
     }
@@ -693,7 +807,7 @@
     }
 
     function showStatus(message) {
-      statusDiv.innerHTML = message;
+      statusDiv.textContent = message;
       statusDiv.classList.add('show');
       errorDiv.classList.remove('show');
     }
