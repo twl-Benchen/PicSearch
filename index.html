@@ -287,16 +287,6 @@
       background: linear-gradient(135deg, #4a5568, #2d3748);
     }
 
-    /* ascii2d 按鈕 - 綠色系 */
-    #ascii2dBtn {
-      background: linear-gradient(135deg, #68d391, #2f855a);
-    }
-
-    /* Yandex 按鈕 - Yandex 紅 */
-    #yandexBtn {
-      background: linear-gradient(135deg, #fc8a6e, #e0341a);
-    }
-
     /* Bing 按鈕 - Bing 青綠 */
     #bingBtn {
       background: linear-gradient(135deg, #4fd1c5, #00796b);
@@ -443,8 +433,6 @@
       <div class="engine-grid">
         <a id="lensBtn" class="search-btn" target="_blank" rel="noopener noreferrer">Google Lens</a>
         <a id="saucenaoBtn" class="search-btn" target="_blank" rel="noopener noreferrer">SauceNAO</a>
-        <a id="ascii2dBtn" class="search-btn" target="_blank" rel="noopener noreferrer">ascii2d</a>
-        <a id="yandexBtn" class="search-btn" target="_blank" rel="noopener noreferrer">Yandex</a>
         <a id="bingBtn" class="search-btn" target="_blank" rel="noopener noreferrer">Bing</a>
         <a id="tineyeBtn" class="search-btn" target="_blank" rel="noopener noreferrer">TinEye</a>
       </div>
@@ -465,8 +453,6 @@
     const SEARCH_ENGINES = [
       { id: 'lensBtn', buildUrl: u => `https://lens.google.com/uploadbyurl?url=${u}` },
       { id: 'saucenaoBtn', buildUrl: u => `https://saucenao.com/search.php?url=${u}` },
-      { id: 'ascii2dBtn', buildUrl: u => `https://ascii2d.net/search/url/${u}` },
-      { id: 'yandexBtn', buildUrl: u => `https://yandex.com/images/search?rpt=imageview&url=${u}` },
       { id: 'bingBtn', buildUrl: u => `https://www.bing.com/images/search?view=detailv2&iss=sbi&q=imgurl:${u}` },
       { id: 'tineyeBtn', buildUrl: u => `https://tineye.com/search?url=${u}` }
     ];
